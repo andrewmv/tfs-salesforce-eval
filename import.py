@@ -40,10 +40,10 @@ def main():
 	# Connect to SalesForce/TrailHead
 	# Note that the security token needs to be passed in as 'session_id',
 	# not 'security_token', which is only used for JWT tokens
-	# session = simple_salesforce.Salesforce(instance=inst, session_id=token)
-	# print("Connected!")
+	session = simple_salesforce.Salesforce(instance=inst, session_id=token)
+	print("Connected!")
 
-	# Open CSV file - we'll keep the filehandle open and process one record at a time.
+	# Open CSV file - we'll keep the filehandle open and process records as we read them.
 	# This will scale better to larger data dumps.
 	with open(datafile, 'r', newline='') as f:
 		reader = csv.DictReader(f)
@@ -56,9 +56,17 @@ def main():
 			if None in row.values():
 				print(f"Warning: row {reader.line_num} has too few fields. Skipping it. {row}")
 				continue
-			print(f"Importing {row['Name']}")
+			# Normalize currency formatting
+			row['AnnualRevenue'] = row['AnnualRevenue'].replace(',', '')
 			# This row looks good, import it
-			#session.Account.create(row)
+			print(f"Importing {row['Name']}")
+			try:
+				session.Account.create(row)
+			except simple_salesforce.exceptions.SalesforceMalformedRequest as e:
+				print(f"Exception importing row: {row}")
+				print(e)
+				break
 
 if __name__ == "__main__":
 	main()
+
