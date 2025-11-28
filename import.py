@@ -40,9 +40,16 @@ def main():
 	# Open CSV file - we'll keep the filehandle open and process one record at a time.
 	# This will scale better to larger data dumps.
 	with open(datafile, 'r', newline='') as f:
-		reader = csv.DictReader(f)
+		reader = csv.DictReader(f, restkey='Overflow')
 		# Field names in sample CSV match the API field names, so we don't need to map them
 		for row in reader:
+			# Do some basic data integrity checking
+			if 'Overflow' in row.keys():
+				print(f"Warning: row {reader.line_num} contained extra fields. Skipping it. {row}")
+				continue
+			if None in row.values():
+				print(f"Warning: row {reader.line_num} contained too few fields. Skipping it. {row}")
+			# Debug print each line that we found
 			print(f"Name: {row['Name']}, Billing Street: {row['BillingStreet']}")
 
 	# Note that the security token needs to be passed in as 'session_id',
