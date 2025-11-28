@@ -22,31 +22,33 @@ def getCreds():
 	config.read(CREDENTIALS_FILE)
 	return (config['sandbox']['Endpoint'], config['sandbox']['Token'])
 
-def parseFile(datafile):
-	with open(datafile, r, newline='') as f:
-		reader = csv.DictReader(f)
-		return reader
-
-
 def main():
-	try:
-		(inst, token) = getCreds()
-	except FileNotFound, KeyError:
-		print(f"Error: Couldn't read the credentials from file {CREDENTIALS_FILE}")
-		sys.exit(1)
-
+	# Ensure the user provided the CSV file name as an argument
 	try:
 		datafile = sys.argv[1]
 	except IndexError:
 		print(f"Usage: {sys.argv[0]} <filename.csv>")
 		sys.exit(2)
 
-	data = parseFile(datafile)
+	# Read Salesforce API credentials from disk
+	try:
+		(inst, token) = getCreds()
+	except (FileNotFoundError, KeyError):
+		print(f"Error: Couldn't read the credentials from file {CREDENTIALS_FILE}")
+		sys.exit(1)
+
+	# Open CSV file - we'll keep the filehandle open and process one record at a time.
+	# This will scale better to larger data dumps.
+	with open(datafile, 'r', newline='') as f:
+		reader = csv.DictReader(f)
+		# Field names in sample CSV match the API field names, so we don't need to map them
+		for row in reader:
+			print(f"Name: {row['Name']}, Billing Street: {row['BillingStreet']}")
 
 	# Note that the security token needs to be passed in as 'session_id',
 	# not 'security_token'
-	session = simple_salesforce.Salesforce(instance=inst, session_id=token)
-	print("Connected!")
+	#session = simple_salesforce.Salesforce(instance=inst, session_id=token)
+	#print("Connected!")
 
 if __name__ == "__main__":
 	main()
