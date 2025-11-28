@@ -37,25 +37,28 @@ def main():
 		print(f"Error: Couldn't read the credentials from file {CREDENTIALS_FILE}")
 		sys.exit(1)
 
+	# Connect to SalesForce/TrailHead
+	# Note that the security token needs to be passed in as 'session_id',
+	# not 'security_token', which is only used for JWT tokens
+	# session = simple_salesforce.Salesforce(instance=inst, session_id=token)
+	# print("Connected!")
+
 	# Open CSV file - we'll keep the filehandle open and process one record at a time.
 	# This will scale better to larger data dumps.
 	with open(datafile, 'r', newline='') as f:
-		reader = csv.DictReader(f, restkey='Overflow')
-		# Field names in sample CSV match the API field names, so we don't need to map them
+		reader = csv.DictReader(f)
+		# Field names in the sample CSV match the API field names, so we don't need to remap them
 		for row in reader:
 			# Do some basic data integrity checking
-			if 'Overflow' in row.keys():
-				print(f"Warning: row {reader.line_num} contained extra fields. Skipping it. {row}")
+			if None in row.keys():
+				print(f"Warning: row {reader.line_num} has extra fields. Skipping it. {row}")
 				continue
 			if None in row.values():
-				print(f"Warning: row {reader.line_num} contained too few fields. Skipping it. {row}")
-			# Debug print each line that we found
-			print(f"Name: {row['Name']}, Billing Street: {row['BillingStreet']}")
-
-	# Note that the security token needs to be passed in as 'session_id',
-	# not 'security_token'
-	#session = simple_salesforce.Salesforce(instance=inst, session_id=token)
-	#print("Connected!")
+				print(f"Warning: row {reader.line_num} has too few fields. Skipping it. {row}")
+				continue
+			print(f"Importing {row['Name']}")
+			# This row looks good, import it
+			#session.Account.create(row)
 
 if __name__ == "__main__":
 	main()
