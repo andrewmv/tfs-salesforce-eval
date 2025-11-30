@@ -2,6 +2,9 @@
 """
 Andrew Villeneuve 2025
 Ingest provided CSV into TrailHead Playground as Account records
+
+The user will need to oauth authenticate and place the resulting instance
+endpoint and security token in the .creds file to connect to SalesForce
 """
 
 ### Config ###
