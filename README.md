@@ -62,6 +62,13 @@ Usage:
 
 	./export.py output.csv
 
+### Methodology
+
+Both of these example utilize SalesForce's Bulk2.0 API, which is significantly faster than the
+per-record API for uploading/downloading large numbrers of a single type of recrod.
+
 ### Additional Notes
 
 The provided sample data file (consisting of 5000 records) won't fit within a free TrailHead sandbox, so I've truncated the sample data set to 2000 records.
+
+The `deleteAccount.py` utility can be used to purge all the sample data from the sandbox to simplify re-running the assessment.
