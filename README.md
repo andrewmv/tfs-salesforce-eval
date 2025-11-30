@@ -24,7 +24,7 @@ Clone repo
 Create and activate a Python3 virtual environment
 
 	python3 -m venv tfs-eval-venv
-	source ./tfs-eval/venv/bin/activate
+	source ./tfs-eval-venv/bin/activate
 
 Install dependencies
 
