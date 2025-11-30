@@ -7,7 +7,6 @@ Ingest provided CSV into TrailHead Playground as Account records
 ### Config ###
 
 CREDENTIALS_FILE='.creds'
-BULK_API=True
 
 ### Includes ###
 
@@ -28,7 +27,7 @@ def getCreds():
 	return (config['sandbox']['Endpoint'], config['sandbox']['Token'])
 
 def main():
-	# Ensure the user provided the CSV file name as an argument
+	# Ensure the user provided the input CSV file name as an argument
 	try:
 		datafile = sys.argv[1]
 	except IndexError:
@@ -42,13 +41,12 @@ def main():
 		print(f"Error: Couldn't read the credentials from file {CREDENTIALS_FILE}")
 		sys.exit(1)
 
-	# Connect to SalesForce/TrailHead
-	# Note that the security token needs to be passed in as 'session_id',
-	# not 'security_token', which is only used for JWT tokens
-	session = simple_salesforce.Salesforce(instance=inst, session_id=token)
-	print("Connected!")
-
 	# Open and process the CSV file 
+	#
+	# Using the synchronous row update API is extremely slow for >1000 records,
+	# so we'll Bulk2 API as documented here: 
+	# https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/bulk_api_2_0_ingest.htm
+	print(f"Reading data from {datafile}")
 	with open(datafile, 'r', newline='') as f:
 		reader = csv.DictReader(f)
 		# Field names in the sample CSV match the API field names, so we don't need to remap them
@@ -62,35 +60,29 @@ def main():
 				continue
 			# Normalize currency formatting
 			row['AnnualRevenue'] = row['AnnualRevenue'].replace(',', '')
+			bulk_data.append(row)
 
-			if BULK_API:
-				bulk_data.append(row)
-			else:	
-				print(f"Importing {row['Name']}")
-				try:
-					session.Account.create(row)
-				except simple_salesforce.exceptions.SalesforceMalformedRequest as e:
-					print(f"Exception importing row: {row}")
-					print(e)
-					break
+	# Now we have all our data formatted the way SalesForce needs it in a dict.
+	# Let's commit it.
 
-	# If we're using the record API, we're already done. Otherwise let's commit the dictionary 
-	# we just built
-	if BULK_API:
-		print("Starting bulk import")
-		try:
-			result = session.bulk2.Account.upsert(records=bulk_data, batch_size=500)
-			for i, job in enumerate(result):
-				print(f"Batch {i+1} of {len(result)}:")
-				totalRecs = result[i]['numberRecordsProcessed']
-				failedRecs = result[i]['numberRecordsFailed']
-				print(f"\t{totalRecs - failedRecs} out of {totalRecs} records processed successfully")
-				if failedRecs > 0:
-					fail_data = session.bulk2.Account.get_failed_records(job['job_id'])
-					print("Failure messages:")
-					print(fail_data)
-		except simple_salesforce.exceptions.SalesforceMalformedRequest as e:
-			print(f"Exception with bulk import")
+	# Connect to SalesForce/TrailHead
+	# Note that the security token needs to be passed in as 'session_id',
+	# not 'security_token', which is only used for JWT tokens
+	session = simple_salesforce.Salesforce(instance=inst, session_id=token)
+	print("Connected to SalesForce. Starting bulk import")
+	try:
+		result = session.bulk2.Account.upsert(records=bulk_data, batch_size=500)
+		for i, job in enumerate(result):
+			print(f"Batch {i+1} of {len(result)}:")
+			totalRecs = result[i]['numberRecordsProcessed']
+			failedRecs = result[i]['numberRecordsFailed']
+			print(f"\t{totalRecs - failedRecs} out of {totalRecs} records processed successfully")
+			if failedRecs > 0:
+				fail_data = session.bulk2.Account.get_failed_records(job['job_id'])
+				print("Failure messages:")
+				print(fail_data)
+	except simple_salesforce.exceptions.SalesforceMalformedRequest as e:
+		print(f"Exception with bulk import")
 
 if __name__ == "__main__":
 	main()
