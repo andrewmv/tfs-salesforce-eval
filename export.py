@@ -10,7 +10,6 @@ endpoint and security token in the .creds file to connect to SalesForce
 ### Config ###
 
 CREDENTIALS_FILE='.creds'
-BULK_API=True
 
 ### Includes ###
 
@@ -18,10 +17,6 @@ import sys
 import csv
 import simple_salesforce
 import configparser
-
-### Vars ###
-
-bulk_data = []
 
 ### Implementation ###
 
